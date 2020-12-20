@@ -8,6 +8,22 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 
+__author__ = 'jesse kleve'
+__version__ = '0.1.0'
+
+
+def get_time():
+    return datetime.utcnow().strftime('%y-%m-%d %H:%M:%S')
+
+
+def log(msg):
+    print(f'{get_time()} | {msg}')
+
+
+def log_error(msg):
+    print(f'{get_time()} | ERROR - {msg}')
+
+
 def get_refresh_token():
     creds_file = 'creds.json'
 
@@ -30,14 +46,14 @@ def save_access(access):
 
 
 def get_login_code():
-    client_id = 'b2d4a4524b214c01800cab34cc739cdd'
+    client_id = os.getenv("SPOTIFY_CLIENT_ID")
     redirect_uri = 'http%3A%2F%2Flocalhost%3A5000'
     scope = 'playlist-modify-public'  # space delimited
 
-    print('Login required')
-    print(f' https://accounts.spotify.com/authorize?'
-          f'response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}')
-    print('What is the code?')
+    log('login required')
+    log(f' https://accounts.spotify.com/authorize?'
+        f'response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}')
+    log('what is the code?')
     return input()
 
 
@@ -57,12 +73,12 @@ def send_auth_code(code):
     if response.status_code == requests.codes.ok:
         return json.loads(response.text)
     else:
-        print(f'{response.status_code}')
-        print(f'{response.text}')
+        log(f'{response.status_code}')
+        log(f'{response.text}')
 
 
 def send_refresh_token(refresh_token):
-    print('Refreshing access token')
+    log('refreshing access token')
     client_id = os.getenv("SPOTIFY_CLIENT_ID")
     client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
     encoded_secrets = b64encode(f'{client_id}:{client_secret}'.encode('utf8')).decode('utf8')
@@ -117,13 +133,15 @@ class Bot:
         if response.status_code == requests.codes.unauthorized:
             self.refresh_access_and_add(track_uris)
         elif response.status_code == requests.codes.ok:
-            print(f'Added to playlist {track_uris}')
+            log(f'added to playlist {track_uris}')
         else:
-            print(f'Failed to add tracks {track_uris}')
-            print(response.text)
+            # @todo this prints on successful adds. probably bc the response.status_code == requests.codes.created
+            log_error(f'failed to add tracks {track_uris}')
+            log(response.text)
 
 
 def get_track_id(url):
+    # @todo error handling when we linked something besides a track
     m = re.search('/track/([a-zA-Z0-9]+)$', url.path)
     return m.group(1)
 
@@ -136,28 +154,65 @@ def parse_urls(string):
     return [x[0] for x in url]
 
 
+def check_env_vars():
+    required_env_vars = (
+        'DISCORD_TOKEN',
+        'SPOTIFY_CLIENT_ID',
+        'SPOTIFY_CLIENT_SECRET',
+    )
+    for env_var in required_env_vars:
+        if not os.getenv(env_var):
+            log_error(f'missing environment variable {env_var}')
+            exit(1)
+
+
+def banner():
+    return """begin botting
+     _           _   _  __
+    | |         | | (_)/ _|
+ ___| |__   ___ | |_ _| |_ _   _
+/ __| '_ \\ / _ \\| __| |  _| | | |
+\\__ \\ |_) | (_) | |_| | | | |_| |
+|___/_.__/ \\___/ \\__|_|_|  \\__, |
+                            __/ |
+                           |___/
+    """
+
+
+log(banner())
+check_env_vars()
 discord_client = discord.Client()
+try:
+    bot = Bot()
+except Bot.LoginError:
+    log_error('failed to login to spotify')
+    exit(1)
 
 
 @discord_client.event
 async def on_message(message):
+    if os.getenv('TEST'):
+        return
+
     for url in parse_urls(message.content):
         u = urlparse(url)
         if 'spotify' in u.netloc:
             try:
                 track_id = get_track_id(u)
             except IndexError:
-                print(f'Failed to get track_id from {u.path}')
+                log_error(f'failed to get track_id from {u.path}')
             else:
                 bot.add_to_playlist(f'spotify:track:{track_id}')
 
-# @todo check for required env vars
-# @todo haven't tested Bot.refresh_access_and_add()
+# @todo test Bot.refresh_access_and_add()
+# @todo add a request history and on startup check this list against what's in the chat. send requests if needed.
+# @todo add a check against the playlist's items and on startup check this list against what's in the chat. send requests if needed.
+# @todo add different channels to different playlists (multi-channel -> respective playlist support)
 
-try:
-    bot = Bot()
-except Bot.LoginError:
-    print('Failed to login to spotify')
-else:
-    print('Starting client')
+
+def main():
+    log('Starting client')
     discord_client.run(os.getenv('DISCORD_TOKEN'))
+
+
+main()
