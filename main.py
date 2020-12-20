@@ -151,6 +151,8 @@ async def on_message(message):
             else:
                 bot.add_to_playlist(f'spotify:track:{track_id}')
 
+# @todo check for required env vars
+# @todo haven't tested Bot.refresh_access_and_add()
 
 try:
     bot = Bot()
