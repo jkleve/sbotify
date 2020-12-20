@@ -1,0 +1,6 @@
+## Hosting
+Currently hosted in DigitalOcean. Login, go to `/srv/discord_playlist_manager` and run...
+```sh
+$ source venv/bin/activate
+$ python main.py
+```
