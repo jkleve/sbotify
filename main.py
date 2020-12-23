@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 
 __author__ = 'jesse kleve'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 
 class InitializationException(Exception):
@@ -112,17 +112,14 @@ class Spotify(object):
         self.add_to_playlist(message, track_uri)
 
     def add_to_playlist(self, message, track_uri):
-        log(f'adding track_uri: {track_uri} playlist_id: {self.get_playlist_id(message)}')
+        log(f'add {track_uri} to spotify:playlist:{self.get_playlist_id(message)}')
         response = requests.post(f'https://api.spotify.com/v1/playlists/{self.get_playlist_id(message)}/tracks',
                                  headers={'Authorization': f'Bearer {self.oauth.access_token}'},
                                  params={'uris': track_uri})
 
         if response.status_code == requests.codes.unauthorized:
             self.refresh_access_and_add(message, track_uri)
-        elif response.status_code == requests.codes.created:
-            log(f'added track_uri: {track_uri} playlist_id: {self.get_playlist_id(message)}')
-        else:
-            # @todo this prints on successful adds. probably bc the response.status_code == requests.codes.created
+        elif response.status_code != requests.codes.created:
             log_error(f'failed to add tracks {track_uri}')
             log(response.text)
 
@@ -138,7 +135,7 @@ class RePostUrls(object):
                     if channel.name in url.netloc:
                         msg = f'{message.author.display_name} shared {url.geturl()}'
                         await channel.send(msg)
-                        log_debug(f'posted: {msg} ({message.guild.name}:{message.channel.name})')
+                        log_debug(f'repost {url} to {message.guild.name}:{channel.name}')
 
 
 class HandleUrls(object):
@@ -169,7 +166,7 @@ class HandleUrls(object):
 class Bot(object):
     @staticmethod
     def banner():
-        return """begin botting
+        return f"""begin botting
          _           _   _  __
         | |         | | (_)/ _|
      ___| |__   ___ | |_ _| |_ _   _
@@ -177,7 +174,7 @@ class Bot(object):
     \\__ \\ |_) | (_) | |_| | | | |_| |
     |___/_.__/ \\___/ \\__|_|_|  \\__, |
                                 __/ |
-                               |___/
+                               |___/    {__version__}
         """
 
     @staticmethod
