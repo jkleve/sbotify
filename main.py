@@ -90,11 +90,8 @@ class Spotify(object):
 
     async def handle(self, message, url):
         if 'spotify' in url.netloc:
-            try:
-                track_id = self.get_track_id(url)
-            except IndexError:
-                log_error(f'failed to get track_id from {url.path}')
-            else:
+            track_id = self.get_track_id(url)
+            if track_id:
                 self.add_to_playlist(message, f'spotify:track:{track_id}')
 
     @staticmethod
@@ -104,8 +101,11 @@ class Spotify(object):
     @staticmethod
     def get_track_id(url):
         # @todo error handling when we linked something besides a track
-        m = re.search('/track/([a-zA-Z0-9]+)$', url.path)
-        return m.group(1)
+        m = re.search('/track/(?P<track_id>[a-zA-Z0-9]+)$', url.path)
+        try:
+            return m.group('track_id')
+        except IndexError:
+            log(f'{url.path} does not appear to be a spotify track')
 
     def refresh_access_and_add(self, message, track_uri):
         self.oauth.refresh_session()
@@ -209,7 +209,8 @@ class Bot(object):
             for handler in (url_handler,):
                 await handler.handle(message)
 
-        client.run(os.getenv('DISCORD_TOKEN'))
+        if not os.getenv('NO_START'):
+            client.run(os.getenv('DISCORD_TOKEN'))
 
 
 # @todo
