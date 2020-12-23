@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 
 __author__ = 'jesse kleve'
-__version__ = '0.3.0'
+__version__ = '0.4.0-dev'
 
 
 class InitializationException(Exception):
@@ -41,7 +41,13 @@ def log_error(msg):
 
 
 class Spotify(object):
+    """
+    Handles any link posted containing 'spotify' in the netloc.
+    It then tries to parse for a track ID and post that to the
+    configured spotify playlist.
+    """
     class OAuthMgr(object):
+        """Manages the OAuth for Spotify"""
         def __init__(self):
             self.cfg = {
                 'file': 'spotify.json',
@@ -92,7 +98,7 @@ class Spotify(object):
         if 'spotify' in url.netloc:
             track_id = self.get_track_id(url)
             if track_id:
-                self.add_to_playlist(message, f'spotify:track:{track_id}')
+                self.add_to_playlist(self.get_playlist_id(message), f'spotify:track:{track_id}')
 
     @staticmethod
     def get_playlist_id(message):
@@ -100,31 +106,40 @@ class Spotify(object):
 
     @staticmethod
     def get_track_id(url):
-        # @todo error handling when we linked something besides a track
+        """Get base-62 encoded track ID"""
         m = re.search('/track/(?P<track_id>[a-zA-Z0-9]+)$', url.path)
         try:
             return m.group('track_id')
         except IndexError:
             log(f'{url.path} does not appear to be a spotify track')
 
-    def refresh_access_and_add(self, message, track_uri):
+    def refresh_access_and_add(self, playlist_id, track_uri):
         self.oauth.refresh_session()
-        self.add_to_playlist(message, track_uri)
+        self.add_to_playlist(playlist_id, track_uri)
 
-    def add_to_playlist(self, message, track_uri):
-        log(f'add {track_uri} to spotify:playlist:{self.get_playlist_id(message)}')
-        response = requests.post(f'https://api.spotify.com/v1/playlists/{self.get_playlist_id(message)}/tracks',
+    def add_to_playlist(self, playlist_id, track_uri):
+        log(f'add {track_uri} to spotify:playlist:{playlist_id}')
+        response = requests.post(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
                                  headers={'Authorization': f'Bearer {self.oauth.access_token}'},
                                  params={'uris': track_uri})
 
         if response.status_code == requests.codes.unauthorized:
-            self.refresh_access_and_add(message, track_uri)
+            self.refresh_access_and_add(playlist_id, track_uri)
         elif response.status_code != requests.codes.created:
             log_error(f'failed to add tracks {track_uri}')
             log(response.text)
 
 
-class RePostUrls(object):
+class Billboard(object):
+    """
+    Any url link with a hostname (netloc) that contains the name of a discord
+    channel under a category is posted to that 'billboard'.
+
+    e.g.
+    If there's a channel named 'spotify' in the 'links' category, any url like
+    https://open.spotify.com/track/as289zwe02 posted in any channel will be posted
+    to the 'spotify' channel.
+    """
     def __init__(self):
         pass
 
@@ -138,7 +153,11 @@ class RePostUrls(object):
                         log_debug(f'repost {url} to {message.guild.name}:{channel.name}')
 
 
-class HandleUrls(object):
+class UrlHandlers(object):
+    """
+    Manages all handlers that want events related to any time someone
+    posts a link in a channel
+    """
     def __init__(self, handlers=None):
         if handlers is None:
             self.handlers = list()
@@ -193,9 +212,9 @@ class Bot(object):
         log(self.banner())
         self.check_env_vars()
 
-        url_handler = HandleUrls([
+        url_handlers = UrlHandlers([
             Spotify(),
-            RePostUrls(),
+            Billboard(),
         ])
 
         client = discord.Client()
@@ -206,21 +225,23 @@ class Bot(object):
                 return
 
             log_trace(f'from {message.author.display_name}: {message.content}')
-            for handler in (url_handler,):
+            for handler in (url_handlers,):
                 await handler.handle(message)
 
         if not os.getenv('NO_START'):
             client.run(os.getenv('DISCORD_TOKEN'))
 
 
-# @todo
-# [ ] - log to file
+# @todo main list
+# [ ] - log to file (supervisord?)
 # [ ] - aiohttp
-# [ ] - test Bot.refresh_access_and_add()
+# [ ] - async & await (almost always use them?)
+# [ ] - test refresh_token flow
 # [ ] - add a request history and on startup check this list against what's in the chat. send requests if needed.
+#       - i thought instead maybe a 'lock' like file that any 201 response on POST /playlists, write that link to a file.
+#         then check this file for if the most recent posts were sent to the playlist.
 # [ ] - add a check against the playlist's items and on startup check this list against what's in the chat. send requests if needed.
 # [ ] - add different channels to different playlists (multi-channel -> respective playlist support)
-# [ ] - i want read only chats for all spotify links, soundcloud links, dropbox links, etc. bot should repost all links in an organized way.
 
 
 Bot()
