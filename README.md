@@ -17,5 +17,17 @@ $ python main.py
 
 ## Re-encrypt keys
 ```sh
-$ openssl enc -aes-256-cbc -base64 -pbkdf2 -in .env.secrets -out .env
+$ openssl enc -aes-256-cbc -base64 -pbkdf2 -in .env -out .env.secrets
+```
+
+## Spotify API
+#### Get user ID
+```sh
+$ http https://api.spotify.com/v1/me "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+#### Get playlists
+```sh
+$ http https://api.spotify.com/v1/me/playlists "Authorization: Bearer ${ACCESS_TOKEN}"
+    | jq '.items[] | "\(.id) \(.name)"'
 ```
