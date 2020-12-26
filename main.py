@@ -102,16 +102,26 @@ class Spotify(object):
 
     @staticmethod
     def get_playlist_id(message):
-        return '4QykfvrUZBqnVoO5q6MrSU'
+        playlists = {
+            'fuego': '4QykfvrUZBqnVoO5q6MrSU',
+            'test': '1tB0bHRL9N9nyWSrNW72OH',
+        }
+        if message.guild.name.startswith('test'):
+            return playlists['test']
+        else:
+            return playlists['fuego']
 
     @staticmethod
     def get_track_id(url):
         """Get base-62 encoded track ID"""
         m = re.search('/track/(?P<track_id>[a-zA-Z0-9]+)$', url.path)
-        try:
-            return m.group('track_id')
-        except IndexError:
+        if not m:
             log(f'{url.path} does not appear to be a spotify track')
+        else:
+            try:
+                return m.group('track_id')
+            except IndexError:
+                log(f'{url.path} does not appear to be a spotify track')
 
     def refresh_access_and_add(self, playlist_id, track_uri):
         self.oauth.refresh_session()
@@ -144,13 +154,21 @@ class Billboard(object):
         pass
 
     async def handle(self, message, url):
+        posted = False
+        other_channel = None
         for category in message.guild.categories:
             if category.name == 'links':
+                msg = f'{message.author.display_name} shared {url.geturl()}'
                 for channel in category.channels:
                     if channel.name in url.netloc:
-                        msg = f'{message.author.display_name} shared {url.geturl()}'
                         await channel.send(msg)
-                        log_debug(f'repost {url} to {message.guild.name}:{channel.name}')
+                        log(f'billboard {url.geturl()} to {message.guild.name}:{channel.name}')
+                        posted = True
+                    if channel.name == 'other':
+                        other_channel = channel
+                if not posted and other_channel is not None:
+                    await other_channel.send(msg)
+                    log(f'billboard {url.geturl()} to {message.guild.name}:{other_channel.name}')
 
 
 class UrlHandlers(object):
@@ -224,6 +242,9 @@ class Bot(object):
             if message.author == client.user:
                 return
 
+            if os.getenv('TEST') and message.guild.name != 'test':
+                return
+
             log_trace(f'from {message.author.display_name}: {message.content}')
             for handler in (url_handlers,):
                 await handler.handle(message)
@@ -236,12 +257,15 @@ class Bot(object):
 # [ ] - log to file (supervisord?)
 # [ ] - aiohttp
 # [ ] - async & await (almost always use them?)
-# [ ] - test refresh_token flow
 # [ ] - add a request history and on startup check this list against what's in the chat. send requests if needed.
 #       - i thought instead maybe a 'lock' like file that any 201 response on POST /playlists, write that link to a file.
 #         then check this file for if the most recent posts were sent to the playlist.
 # [ ] - add a check against the playlist's items and on startup check this list against what's in the chat. send requests if needed.
 # [ ] - add different channels to different playlists (multi-channel -> respective playlist support)
+# [ ] - have bot look for f'fuego {month}' playlist in spotify and add to that (auto update month after month)
+
+# things to test on release
+# [ ] - refresh_token flow
 
 
 Bot()
