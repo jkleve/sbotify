@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 
 __author__ = 'jesse kleve'
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 
 class InitializationException(Exception):
