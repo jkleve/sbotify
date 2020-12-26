@@ -3,7 +3,11 @@ import json
 import requests
 from base64 import b64encode
 
-
+scope = '%20'.join([
+    'playlist-modify-private',
+    'playlist-modify-public',
+    'playlist-read-private',
+])
 client_id = os.environ["SPOTIFY_CLIENT_ID"]
 client_secret = os.environ["SPOTIFY_CLIENT_SECRET"]
 output_file = 'spotify.json'
@@ -17,11 +21,10 @@ def save_access(access):
 
 def tell_user_to_authorize():
     redirect_uri = 'http%3A%2F%2Flocalhost%3A5000'
-    scope = 'playlist-modify-public'  # space delimited
 
     print('login required')
-    print(f' https://accounts.spotify.com/authorize?'
-        f'response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}')
+    print('https://accounts.spotify.com/authorize?'
+          f'response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}')
     print('what is the code?')
     return input()
 
