@@ -5,12 +5,11 @@ import json
 import re
 import requests
 from base64 import b64encode
-from datetime import datetime
 from urllib.parse import urlparse
 
 
 __author__ = 'jesse kleve'
-__version__ = '0.5.0'
+__version__ = '0.6.0-dev'
 
 logging.basicConfig(
     filename='sbotify.log', level=logging.INFO, datefmt='%y-%m-%d %H:%M:%S',
