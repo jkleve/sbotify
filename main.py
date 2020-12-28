@@ -1,5 +1,6 @@
 import discord
 import os
+import logging
 import json
 import re
 import requests
@@ -11,21 +12,18 @@ from urllib.parse import urlparse
 __author__ = 'jesse kleve'
 __version__ = '0.5.0'
 
+logging.basicConfig(
+    filename='sbotify.log', level=logging.INFO, datefmt='%y-%m-%d %H:%M:%S',
+    format='%(asctime)s | %(levelname)5s | %(message)s')
+logging.getLogger('discord').setLevel(logging.CRITICAL)
+
 
 class InitializationException(Exception):
     pass
 
 
-def get_time():
-    return datetime.utcnow().strftime('%y-%m-%d %H:%M:%S')
-
-
-def handle_log(msg):
-    print(f'{get_time()} | {msg}')
-
-
 def log(msg):
-    handle_log(f' info | {msg}')
+    logging.info(msg)
 
 
 def log_trace(msg):
@@ -33,11 +31,11 @@ def log_trace(msg):
 
 
 def log_debug(msg):
-    handle_log(f'  dbg | {msg}')
+    logging.debug(msg)
 
 
 def log_error(msg):
-    handle_log(f'ERROR | {msg}')
+    logging.error(msg)
 
 
 class Spotify(object):
@@ -254,7 +252,6 @@ class Bot(object):
 
 
 # @todo main list
-# [ ] - log to file (supervisord?)
 # [ ] - aiohttp
 # [ ] - async & await (almost always use them?)
 # [ ] - add a request history and on startup check this list against what's in the chat. send requests if needed.
