@@ -4,6 +4,7 @@ import logging
 import json
 import re
 import requests
+import sys
 from base64 import b64encode
 from urllib.parse import urlparse
 
@@ -12,8 +13,9 @@ __author__ = 'jesse kleve'
 __version__ = '0.6.0-dev'
 
 logging.basicConfig(
-    filename='sbotify.log', level=logging.INFO, datefmt='%y-%m-%d %H:%M:%S',
-    format='%(asctime)s | %(levelname)5s | %(message)s')
+    stream=sys.stdout, level=logging.INFO,
+    datefmt='%y-%m-%d %H:%M:%S', format='%(asctime)s | %(levelname)5s | %(message)s')
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('discord').setLevel(logging.CRITICAL)
 
 
@@ -243,7 +245,7 @@ class Bot(object):
                 return
 
             log_trace(f'from {message.author.display_name}: {message.content}')
-            for handler in (url_handlers,):
+            for handler in [url_handlers,]:
                 await handler.handle(message)
 
         if not os.getenv('NO_START'):
@@ -251,6 +253,9 @@ class Bot(object):
 
 
 # @todo main list
+# [ ] - have bot look for f'fuego {month}' playlist in spotify and add to that (auto update month after month)
+# [ ] - sbotify.dori.llc (switch to google?)
+# [ ] - dockererize (docker-compose)
 # [ ] - aiohttp
 # [ ] - async & await (almost always use them?)
 # [ ] - add a request history and on startup check this list against what's in the chat. send requests if needed.
@@ -258,7 +263,6 @@ class Bot(object):
 #         then check this file for if the most recent posts were sent to the playlist.
 # [ ] - add a check against the playlist's items and on startup check this list against what's in the chat. send requests if needed.
 # [ ] - add different channels to different playlists (multi-channel -> respective playlist support)
-# [ ] - have bot look for f'fuego {month}' playlist in spotify and add to that (auto update month after month)
 
 # things to test on release
 # [ ] - refresh_token flow

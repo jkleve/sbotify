@@ -22,6 +22,16 @@ $ ln -s sbotify.ini /etc/supervisord.d/sbotify.ini
 $ systemctl restart supervisord
 ```
 
+### Serve sbotify logs
+Add an inbound rule on the EC2 instance to allow connections on port 80. Also...
+```sh
+# install nginx
+$ ln -s sbotify.conf /etc/nginx/conf.d/sbodify.conf
+$ ln -s sbotify.log /usr/share/nginx/html/index.txt
+$ systemctl enable nginx
+$ systemctl start nginx
+```
+
 ## Re-encrypt keys
 ```sh
 $ openssl enc -aes-256-cbc -base64 -pbkdf2 -in .env -out .env.secrets
