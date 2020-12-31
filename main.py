@@ -5,7 +5,6 @@ import json
 import pytz
 import re
 import requests
-import sys
 from base64 import b64encode
 from datetime import datetime
 from urllib.parse import urlparse
@@ -15,7 +14,7 @@ __author__ = 'Jesse Kleve'
 __version__ = '0.6.0'
 
 logging.basicConfig(
-    stream=sys.stdout, level=logging.INFO,
+    filename='sbotify.log', level=logging.INFO,
     datefmt='%y-%m-%d %H:%M:%S', format='%(asctime)s | %(levelname)5s | %(message)s')
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('discord').setLevel(logging.CRITICAL)
