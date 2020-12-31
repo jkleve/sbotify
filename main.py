@@ -2,15 +2,17 @@ import discord
 import os
 import logging
 import json
+import pytz
 import re
 import requests
 import sys
 from base64 import b64encode
+from datetime import datetime
 from urllib.parse import urlparse
 
 
-__author__ = 'jesse kleve'
-__version__ = '0.6.0-dev'
+__author__ = 'Jesse Kleve'
+__version__ = '0.6.0'
 
 logging.basicConfig(
     stream=sys.stdout, level=logging.INFO,
@@ -45,6 +47,10 @@ class Spotify(object):
     It then tries to parse for a track ID and post that to the
     configured spotify playlist.
     """
+    class User(object):
+        def __init__(self, user_id):
+            self.user_id = user_id
+
     class OAuthMgr(object):
         """Manages the OAuth for Spotify"""
         def __init__(self):
@@ -90,25 +96,65 @@ class Spotify(object):
                 self.access.update(json.loads(response.text))
                 self.save_access()
 
+    class Playlists(object):
+        def __init__(self, oauth, user):
+            self.oauth = oauth
+            self.user = user
+            self.playlists = self.refresh_playlists()
+
+        def get_playlist(self, name):
+            if name in self.playlists.keys():
+                return self.playlists[name]
+
+        @staticmethod
+        def parse_playlist_page(response):
+            playlists = dict()
+            for item in response.json()["items"]:
+                playlists[item["name"]] = item["id"]
+            return playlists, response.json()["next"]
+
+        def refresh_playlists(self):
+            playlists = dict()
+            response = requests.get(f'https://api.spotify.com/v1/me/playlists',
+                                    headers={'Authorization': f'Bearer {self.oauth.access_token}'},
+                                    params={'limit': 50})
+            while True:
+                if response.ok:
+                    items, next_url = self.parse_playlist_page(response)
+                    playlists.update(items)
+                    if next_url is not None:
+                        response = requests.get(response.json()["next"],
+                                                headers={'Authorization': f'Bearer {self.oauth.access_token}'})
+                    else:
+                        break
+            return playlists
+
+        def create_playlist(self, name):
+            response = requests.post(f'https://api.spotify.com/v1/users/{self.user.user_id}/playlists',
+                                     headers={'Authorization': f'Bearer {self.oauth.access_token}'},
+                                     json={'name': name})
+            if response.ok:
+                self.playlists = self.refresh_playlists()
+                return self.get_playlist(name)
+
     def __init__(self):
         self.oauth = self.OAuthMgr()
+        self.playlists = self.Playlists(self.oauth, Spotify.User('1234133441'))
 
     async def handle(self, message, url):
         if 'spotify' in url.netloc:
             track_id = self.get_track_id(url)
             if track_id:
-                self.add_to_playlist(self.get_playlist_id(message), f'spotify:track:{track_id}')
+                self.add_to_playlist(await self.get_playlist_id(message), f'spotify:track:{track_id}')
 
-    @staticmethod
-    def get_playlist_id(message):
-        playlists = {
-            'fuego': '4QykfvrUZBqnVoO5q6MrSU',
-            'test': '1tB0bHRL9N9nyWSrNW72OH',
-        }
-        if message.guild.name.startswith('test'):
-            return playlists['test']
-        else:
-            return playlists['fuego']
+    async def get_playlist_id(self, message):
+        playlist_name = f'400% Fuego {datetime.now(pytz.timezone("US/Central")).strftime("%B")}'
+        playlist_id = self.playlists.get_playlist(playlist_name)
+        if playlist_id is None:
+            playlist_id = self.playlists.create_playlist(playlist_name)
+            await message.channel.send(f'Created new playlist {playlist_name} '
+                                       f'https://open.spotify.com/playlist/{playlist_id}')
+        return playlist_id
 
     @staticmethod
     def get_track_id(url):
@@ -245,7 +291,7 @@ class Bot(object):
                 return
 
             log_trace(f'from {message.author.display_name}: {message.content}')
-            for handler in [url_handlers,]:
+            for handler in [url_handlers, ]:
                 await handler.handle(message)
 
         if not os.getenv('NO_START'):
@@ -253,7 +299,6 @@ class Bot(object):
 
 
 # @todo main list
-# [ ] - have bot look for f'fuego {month}' playlist in spotify and add to that (auto update month after month)
 # [ ] - sbotify.dori.llc (switch to google?)
 # [ ] - dockererize (docker-compose)
 # [ ] - aiohttp
