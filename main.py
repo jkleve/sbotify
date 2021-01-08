@@ -6,12 +6,12 @@ import pytz
 import re
 import requests
 from base64 import b64encode
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 
 __author__ = 'Jesse Kleve'
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 
 logging.basicConfig(
     filename='sbotify.log', level=logging.INFO,
@@ -56,7 +56,10 @@ class Spotify(object):
             self.cfg = {
                 'file': 'spotify.json',
             }
+
             self.access = self.load_access()
+            self.refreshed_at = None
+
             self.refresh_session()
 
         @property
@@ -66,6 +69,10 @@ class Spotify(object):
         @property
         def refresh_token(self):
             return self.access["refresh_token"]
+
+        def is_expired(self):
+            # last refresh + expiration + 60 second buffer
+            return self.refreshed_at + timedelta(seconds=self.access["expires_in"] + 60) > datetime.utcnow()
 
         def load_access(self):
             if not os.path.isfile(self.cfg['file']):
@@ -92,8 +99,12 @@ class Spotify(object):
                 })
 
             if response.status_code == requests.codes.ok:
+                log('got new access token')
                 self.access.update(json.loads(response.text))
+                self.refreshed_at = datetime.utcnow()
                 self.save_access()
+            else:
+                log_error(f'failed to refresh access token: {response.text}')
 
     class Playlists(object):
         def __init__(self, oauth, user):
@@ -167,21 +178,16 @@ class Spotify(object):
             except IndexError:
                 log(f'{url.path} does not appear to be a spotify track')
 
-    def refresh_access_and_add(self, playlist_id, track_uri):
-        self.oauth.refresh_session()
-        self.add_to_playlist(playlist_id, track_uri)
-
     def add_to_playlist(self, playlist_id, track_uri):
         log(f'add {track_uri} to spotify:playlist:{playlist_id}')
         response = requests.post(f'https://api.spotify.com/v1/playlists/{playlist_id}/tracks',
                                  headers={'Authorization': f'Bearer {self.oauth.access_token}'},
                                  params={'uris': track_uri})
 
-        if response.status_code == requests.codes.unauthorized:
-            self.refresh_access_and_add(playlist_id, track_uri)
-        elif response.status_code != requests.codes.created:
-            log_error(f'failed to add tracks {track_uri}')
-            log(response.text)
+        if response.ok:
+            log(f'added {track_uri} to {playlist_id}')
+        else:
+            log_error(f'failed to add tracks {track_uri}: {response.text}')
 
 
 class Billboard(object):
