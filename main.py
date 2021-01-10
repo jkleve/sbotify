@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 
 __author__ = 'Jesse Kleve'
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 logging.basicConfig(
     filename='sbotify.log', level=logging.INFO,
@@ -57,7 +57,7 @@ class Spotify(object):
                 'file': 'spotify.json',
             }
 
-            self.access = self.load_access()
+            self.access = self._load_access()
             self.refreshed_at = None
 
             self.refresh_session()
@@ -66,22 +66,18 @@ class Spotify(object):
         def access_token(self):
             return self.access["access_token"]
 
-        @property
-        def refresh_token(self):
-            return self.access["refresh_token"]
-
         def is_expired(self):
             # last refresh + expiration + 60 second buffer
-            return self.refreshed_at + timedelta(seconds=self.access["expires_in"] + 60) > datetime.utcnow()
+            return datetime.utcnow() > self.refreshed_at + timedelta(seconds=self.access["expires_in"] + 60)
 
-        def load_access(self):
+        def _load_access(self):
             if not os.path.isfile(self.cfg['file']):
                 raise InitializationException(f'no access file {self.cfg["file"]}')
 
             with open(self.cfg['file']) as f:
                 return json.loads(f.read())
 
-        def save_access(self):
+        def _save_access(self):
             with open(self.cfg['file'], 'w') as f:
                 f.write(json.dumps(self.access))
             os.chmod(self.cfg['file'], 0o600)
@@ -102,7 +98,7 @@ class Spotify(object):
                 log('got new access token')
                 self.access.update(json.loads(response.text))
                 self.refreshed_at = datetime.utcnow()
-                self.save_access()
+                self._save_access()
             else:
                 log_error(f'failed to refresh access token: {response.text}')
 
@@ -153,6 +149,8 @@ class Spotify(object):
 
     async def handle(self, message, url):
         if 'spotify' in url.netloc:
+            if self.oauth.is_expired():
+                self.oauth.refresh_session()
             track_id = self.get_track_id(url)
             if track_id:
                 self.add_to_playlist(await self.get_playlist_id(message), f'spotify:track:{track_id}')
