@@ -1,15 +1,29 @@
 # Sbotify
 
 ## Table of Contents
-- [Initial Setup](#initial-setup)
-- [Development](#development)
+- [Get Started](#get-started)
+- [Develop](#develop)
 - [Spotify API](#spotify-api)
 
-# Inital Setup
+# Get Started
 
 For steps to set up a VM to run this application see [the provision guide here](./docs/provision-vm.md).
 
-## Development
+## Develop
+
+```sh
+# Don't forget to activate environment.
+source venv/bin/activate
+
+# Run dev server. The default port is 5000.
+python src/sbotify.py
+```
+
+Run a test command.
+
+```sh
+curl -X POST -H "Content-Type: application/json" '{"msg":"hello, world"}' -Sv 127.0.0.1:5000/sms-text
+```
 
 See [the developers guide here](./docs/developers-guide.md).
 
