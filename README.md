@@ -1,19 +1,23 @@
 # Sbotify
 
 ## Table of Contents
-- [Initial Setup](#initial-setup-initial-setup)
-- [Development](#development-development)
-- [Spotify API](#spotify-api-spotify-api)
+- [Initial Setup](#initial-setup)
+- [Development](#development)
+- [Spotify API](#spotify-api)
 
-# Inital Setup {#initial-setup}
+<a name="initial-setup"></a>
+
+# Inital Setup
 
 For steps to set up a VM to run this application see [the provision guide here](./docs/provision-vm.md).
 
-## Development {#development}
+<a name="development"></a>
+
+## Development
 
 See [the developers guide here](./docs/developers-guide.md).
 
-## Spotify API {#spotify-api}
+## Spotify API
 
 Sbotify uses spotify's API to manage playlists. See [the spotify api guide](./docs/spotify-api.md) for more information.
 
