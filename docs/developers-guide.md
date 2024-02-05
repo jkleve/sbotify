@@ -12,5 +12,5 @@ source venv/bin/activate
 ```
 
 ```sh
-python src/sbotify.py
+flask --app src/app.py run
 ```

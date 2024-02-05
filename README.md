@@ -16,7 +16,7 @@ For steps to set up a VM to run this application see [the provision guide here](
 source venv/bin/activate
 
 # Run dev server. The default port is 5000.
-python src/sbotify.py
+flasek --app src/app.py run
 ```
 
 Run a test command.
