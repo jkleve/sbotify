@@ -1,9 +1,9 @@
 # Sbotify
 
 ## Table of Contents
-- [Initial Setup](#initial-setup)
-- [Development](#development)
-- [Spotify API](#spotify-api)
+- [Initial Setup](#initial-setup-initial-setup)
+- [Development](#development-development)
+- [Spotify API](#spotify-api-spotify-api)
 
 # Inital Setup {#initial-setup}
 
