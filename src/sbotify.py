@@ -1,4 +1,4 @@
-import discord
+# import discord
 import os
 import logging
 import json
@@ -7,17 +7,23 @@ import re
 import requests
 from base64 import b64encode
 from datetime import datetime, timedelta
+from flask import abort, Flask, jsonify, request
 from urllib.parse import urlparse
+import sys
 
 
 __author__ = 'Jesse Kleve'
-__version__ = '0.7.1'
+__version__ = '0.8.0'
 
-logging.basicConfig(
-    filename='sbotify.log', level=logging.INFO,
-    datefmt='%y-%m-%d %H:%M:%S', format='%(asctime)s | %(levelname)5s | %(message)s')
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+# logging.basicConfig(
+#     filename='sbotify.log', level=logging.INFO,
+#     datefmt='%y-%m-%d %H:%M:%S', format='%(asctime)s | %(levelname)5s | %(message)s')
 logging.getLogger('asyncio').setLevel(logging.WARNING)
 logging.getLogger('discord').setLevel(logging.CRITICAL)
+
+
+app = Flask(__name__)
 
 
 class InitializationException(Exception):
@@ -265,7 +271,7 @@ class Bot(object):
     @staticmethod
     def check_env_vars():
         required_env_vars = (
-            'DISCORD_TOKEN',
+            # 'DISCORD_TOKEN',
             'SPOTIFY_CLIENT_ID',
             'SPOTIFY_CLIENT_SECRET',
         )
@@ -278,27 +284,32 @@ class Bot(object):
         log(self.banner())
         self.check_env_vars()
 
-        url_handlers = UrlHandlers([
+        self.url_handlers = UrlHandlers([
             Spotify(),
             Billboard(),
         ])
 
-        client = discord.Client()
+    async def handle_message(self, message):
+        log_trace(f'from {message.author.display_name}: {message.content}')
+        for handler in self.url_handlers:
+            await handler.handle(message)
 
-        @client.event
-        async def on_message(message):
-            if message.author == client.user:
-                return
+        # client = discord.Client()
 
-            if os.getenv('TEST') and message.guild.name != 'test':
-                return
+        # @client.event
+        # async def on_message(message):
+        #     if message.author == client.user:
+        #         return
 
-            log_trace(f'from {message.author.display_name}: {message.content}')
-            for handler in [url_handlers, ]:
-                await handler.handle(message)
+        #     if os.getenv('TEST') and message.guild.name != 'test':
+        #         return
 
-        if not os.getenv('NO_START'):
-            client.run(os.getenv('DISCORD_TOKEN'))
+        #     log_trace(f'from {message.author.display_name}: {message.content}')
+        #     for handler in [url_handlers, ]:
+        #         await handler.handle(message)
+
+        # if not os.getenv('NO_START'):
+        #     client.run(os.getenv('DISCORD_TOKEN'))
 
 
 # @todo main list
@@ -316,4 +327,20 @@ class Bot(object):
 # [ ] - refresh_token flow
 
 
-Bot()
+bot = Bot()
+
+def handle_sms_msg(msg) -> bool:
+    log(f"Recieved {msg}")
+    bot.handle_message(msg)
+    return True
+
+
+@app.route("/sms-text", methods=["POST"])
+def sms_text():
+    msg = request.form.get("msg")
+    if handle_sms_msg(msg):
+        return jsonify(msg="Created"), 201
+    return jsonify(msg="Something went wrong"), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -1,11 +1,26 @@
-## Inital Setup
-This only needs to be done once.
-```sh
-$ openssl enc -d -aes-256-cbc -base64 -pbkdf2 -in .env.secrets -out .env
-$ virtualenv venv -p /usr/bin/python3
-$ source venv/bin/activate
-$ pip install -r requirements.txt
-```
+# Sbotify
+
+## Table of Contents
+- [Initial Setup](#initial-setup)
+- [Development](#development)
+- [Spotify API](#spotify-api)
+
+# Inital Setup {#initial-setup}
+
+For steps to set up a VM to run this application see [the provision guide here](./docs/provision-vm.md).
+
+## Development {#development}
+
+See [the developers guide here](./docs/developers-guide.md).
+
+## Spotify API {#spotify-api}
+
+Sbotify uses spotify's API to manage playlists. See [the spotify api guide](./docs/spotify-api.md) for more information.
+
+
+# Deprecated or out-of-date
+
+TODO(jkleve) clean up. I'm not sure if my old set up used nginx.
 
 ## Hosting
 Currently hosted on an EC2 AWS instance running out of `~/sbotify`.
@@ -30,21 +45,4 @@ $ ln -s sbotify.conf /etc/nginx/conf.d/sbodify.conf
 $ ln -s sbotify.log /usr/share/nginx/html/index.txt
 $ systemctl enable nginx
 $ systemctl start nginx
-```
-
-## Re-encrypt keys
-```sh
-$ openssl enc -aes-256-cbc -base64 -pbkdf2 -in .env -out .env.secrets
-```
-
-## Spotify API
-#### Get user ID
-```sh
-$ http https://api.spotify.com/v1/me "Authorization: Bearer ${ACCESS_TOKEN}"
-```
-
-#### Get playlists
-```sh
-$ http https://api.spotify.com/v1/me/playlists "Authorization: Bearer ${ACCESS_TOKEN}"
-    | jq '.items[] | "\(.id) \(.name)"'
 ```
