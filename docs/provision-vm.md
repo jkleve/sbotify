@@ -2,13 +2,13 @@
 # How to get a VM set up
 
 ## Table of Contents
-- [Provision VM](#provision-vm-provision-vm)
+- [Provision VM](#provision-vm)
 - [Decrypt secrets](#decrypt-secrets)
 - [Configure python](#configure-python)
 - [Configure nginx](#configure-nginx)
 - [Next](#next)
 
-## Provision VM {#provision-vm}
+## Provision VM
 
 ```sh
 ssh root@<ip>
@@ -26,7 +26,7 @@ apt install supervisord
 apt install python3 virtualenv pip
 ```
 
-## Decrypt secrets {#decrypt-secrets}
+## Decrypt secrets
 
 ```sh
 openssl enc -d -aes-256-cbc -base64 -pbkdf2 -in .env.secrets -out .env
@@ -38,7 +38,7 @@ If you ever have to re-encrypt the secrets you can use:
 openssl enc -aes-256-cbc -base64 -pbkdf2 -in .env -out .env.secrets
 ```
 
-## Configure python {#configure-python}
+## Configure python
 
 ```sh
 # create a virtual environment
@@ -51,9 +51,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Configure nginx {#configure-nginx}
+## Configure nginx 
 
-## Next {#next}
+## Next
 
 See:
 - [Developers Guide](./developers-guide.md)
